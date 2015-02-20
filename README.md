@@ -43,12 +43,12 @@ var replacement = {
 		test: function (node) {
 			this === replacement; //true
 
-			//undefined return passes test
+			//returning `undefined` means test is passed
 		},
 		replace: function (node) {
 			this === replacement; //true
 
-			//returning null replaces node
+			//returning `null` replaces node
 			return null;
 		}
 	},
@@ -56,7 +56,7 @@ var replacement = {
 	//supertype, matched after specific types
 	Expression: {
 		replace: function (node) {
-			//undefined return keeps node the same
+			//returning `undefined` keeps node the same
 		}
 	}
 }

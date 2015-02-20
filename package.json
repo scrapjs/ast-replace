@@ -37,6 +37,7 @@
   },
   "devDependencies": {
     "chai": "^2.0.0",
+    "escodegen": "^1.6.1",
     "esprima": "^2.0.0",
     "mocha": "^2.1.0"
   }
