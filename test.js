@@ -1,35 +1,61 @@
 var assert = require('chai').assert;
-var Replacer = require('./');
-var replace = Replacer.replace;
-var test = Replacer.test;
+var replace = require('./');
+var test = require('ast-test');
 var parse = require('esprima').parse;
+var generate = require('escodegen').generate;
 
 
-describe('Replacer.test',function(){
-	it('bad test', function(){
-		var ast = parse('var a = 1 + 1;');
-		var res = test(ast, {
-			test: false
+describe('replace',function () {
+	it('readme example', function () {
+		//add rule to replace all `foo` assignments with `bar`.
+		var ast = replace(parse('foo = 1;'), {
+			AssignmentExpression: {
+				test: function (node) {
+					if (node.operator !== '=') return false;
+					return node.left.name === 'foo';
+				},
+				replace: function (node) {
+					node.left.name = 'bar';
+					return node;
+				}
+			}
 		});
-		assert.notOk(res);
+
+		assert.equal(generate(ast), 'bar = 1;');
 	});
 
-	it('good test', function(){
-		var ast = parse('var a = 1 + 1;');
-		var res = test(ast, {
-			test: true
+	it('static, supertype & omitted', function () {
+		//add rule to replace all `foo` assignments with `bar`.
+		var ast = replace(parse('foo = 1; bar = 2; foo = 3;'), {
+			AssignmentExpression: {
+				test: function (node) {
+					if (node.operator !== '=') return false;
+					return node.left.name === 'foo';
+				},
+				replace: null
+			},
+			Expression: {
+				replace: function (node) {
+					if (node.left) node.left.name = 'baz';
+				}
+			}
 		});
-		assert.ok(res);
+
+		assert.equal(generate(ast, {format: {indent: {style: ''}, newline: ''}}), 'baz = 2;');
 	});
-});
 
-
-describe('Replacer.replace',function(){
-	it('simple replace', function(){
-		var ast = parse('var a = 1 + 1;');
-		var res = test(ast, {
-			test: false
-		});
-		assert.notOk(res);
+	it('empty ast in result', function () {
+		//add rule to replace all `foo` assignments with `bar`.
+		assert.throws(function(){
+			replace(parse('foo = 1;').body[0], {
+				AssignmentExpression: {
+					test: function (node) {
+						if (node.operator !== '=') return false;
+						return node.left.name === 'foo';
+					},
+					replace: null
+				}
+			});
+		}, 'Cannot prune node');
 	});
 });

@@ -4,87 +4,82 @@
  * @module ast-replace
  */
 
-var visit = require('ast-types').visit;
+var types = require('ast-types');
+var visit = types.visit;
+var n = types.namedTypes;
+var test = require('ast-test');
 var isFunction =  require('is-function');
-var appendProps = require('soft-extend');
+var assert = require('assert');
 
-
-/**
- * Replacer class to make multiple replacements.
- *
- * @constructor
- */
-function Replacer () {
-	//stack of rules
-	this.rules = [];
-}
 
 
 /** Apply single replacement to a node */
-Replacer.replace = function(node, rule){
-	rule = appendProps(rule || {}, {
-		match: 'Node',
-		test: true,
-		replace: null,
-	});
+function replace (node, rules) {
+	assert.ok(n.Node.check(node));
+
+	if (!rules) return node;
 
 	//construct visitor
-	var visitor = {};
-	visitor['visit' + rule.match] = function (path) {
-		this.traverse(path);
-		var node = path.node;
+	var visitor = {}, rule;
 
-		if (Replacer.test(node, rule))
-		return isFunction(rule.replace) ? rule.replace(node) : rule.replace;
-	};
-
-	return node;
-};
-
-
-/** Test whether single node is replaceable */
-Replacer.test = function(node, rule){
-	rule = appendProps(rule || {}, {
-		match: 'Node',
-		test: true
-	});
-
-	//construct visitor
-	var visitor = {};
-	visitor['visit' + rule.match] = function (path) {
-		this.traverse(path);
-		var node = path.node;
-
-		//break traversing, if some bad node found
-		if (isFunction(rule.test)) {
-			if (rule.test(node) === false) throw 1;
-		}
-		else {
-			if (rule.test === false) throw 1;
-		}
-	};
-
-	try {
-		visit(node, visitor);
-	} catch (e) {
-		return false;
+	for (var match in rules) {
+		rule = rules[match];
+		visitor['visit' + match] = getReplacer(match, rule, rules);
 	}
 
-	return true;
-};
+	visit(node, visitor);
+
+	return node;
+}
 
 
+/** Get replacer for a rule */
+function getReplacer (match, rule, rules) {
+	return function (path) {
+		var node = path.node, res;
 
-var proto = Replacer.prototype;
+		if (testAndReplace(path, rule, rules)) return false;
+
+		//use supertypes, if any
+		var superTypes = types.getSupertypeNames(node.type);
+		superTypes.forEach(function(type){
+			var rule = rules[type];
+			if (rule) {
+				if (testAndReplace(path, rule, rules)) return false;
+			}
+		});
+
+		this.traverse(path);
+	};
+}
 
 
-/**
- * Add new replacement rule
- * {match, test, replace}
- */
-proto.add = function(replacement){
+/** Test node-path on rule, return true if successful */
+function testAndReplace (path, rule, rules) {
+	var node = path.node;
 
-};
+	var testResult = isFunction(rule.test) ? rule.test.call(rules, node) : rule.test;
+
+	if (testResult === undefined || testResult) {
+		var replaceRes = isFunction(rule.replace) ? rule.replace.call(rules, node) : rule.replace;
+		if (replaceRes !== undefined) {
+			if (!replaceRes) {
+				try {
+					path.prune();
+				} catch (e) {
+					if (!path.parent) {
+						throw Error('Cannot prune node `' + node.type + '`. Possibly, it has no parent.');
+					} else throw e;
+				}
+			}
+			else {
+				path.replace(replaceRes);
+			}
+
+			return true;
+		}
+	}
+}
 
 
-module.exports = Replacer;
+module.exports = replace;

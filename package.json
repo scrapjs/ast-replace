@@ -28,6 +28,7 @@
   },
   "homepage": "https://github.com/dfcreative/ast-replace",
   "dependencies": {
+    "ast-test": "^1.1.1",
     "ast-types": "^0.6.12",
     "esquery": "^0.3.0",
     "esrecurse": "^1.2.0",
