@@ -1,6 +1,6 @@
 {
   "name": "ast-replace",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Replace AST node by rules",
   "main": "index.js",
   "scripts": {
