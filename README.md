@@ -3,7 +3,7 @@
 Replace each matched ast-node passing a test.
 
 
-## Use
+## Usage
 
 `$ npm install --save ast-replace`
 
